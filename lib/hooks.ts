@@ -32,7 +32,7 @@ export const setValidateApi = (validate: () => boolean) => {
 
 export const useQueryApi = <TGetProps, TGetResponse>(
   props: Omit<QueryProps<string, TGetResponse>, "keyToMap">
-) => {
+): ReturnType<typeof useQuery<TGetResponse>> => {
   const {
     enabled,
     endpoint: endpointArr,
@@ -150,11 +150,31 @@ export const useMutateApi = <TProps, TResponse, TConverter = null>({
   mutateOptions,
   method,
   notification,
-}: QueriesProps<TProps, TResponse, TConverter>) => {
+}: QueriesProps<TProps, TResponse, TConverter>): ReturnType<
+  typeof useMutation<TResponse, Error, TProps, unknown>
+> => {
   const { showNotification } = useNotification();
   const auth = useAuthValue();
 
-  return useMutation<TResponse, Error, TProps>({
+  type MutateOptionsType = NonNullable<
+    QueriesProps<TProps, TResponse, TConverter>["mutateOptions"]
+  >;
+  type SuccessFn = Extract<
+    MutateOptionsType["onSuccess"],
+    (...args: any[]) => unknown
+  >;
+  type ErrorFn = Extract<
+    MutateOptionsType["onError"],
+    (...args: any[]) => unknown
+  >;
+  type SuccessParams = SuccessFn extends (...args: infer P) => unknown
+    ? P
+    : [TResponse, TProps, unknown, unknown];
+  type ErrorParams = ErrorFn extends (...args: infer P) => unknown
+    ? P
+    : [Error, TProps, unknown, unknown];
+
+  return useMutation<TResponse, Error, TProps, unknown>({
     mutationFn: async (data) => {
       if (isTest) {
         return "test" as TResponse;
@@ -173,8 +193,9 @@ export const useMutateApi = <TProps, TResponse, TConverter = null>({
       );
     },
     ...(mutateOptions || {}),
-    onSuccess: (data: TResponse, variables: TProps, context: unknown) => {
-      mutateOptions?.onSuccess?.(data, variables, context);
+    onSuccess: (...args: SuccessParams) => {
+      const [data] = args;
+      (mutateOptions?.onSuccess as SuccessFn | undefined)?.(...args);
       queryKeyToInvalidate?.forEach((queryKey) => {
         queryClient.invalidateQueries({ queryKey: [queryKey], exact: false });
       });
@@ -190,8 +211,9 @@ export const useMutateApi = <TProps, TResponse, TConverter = null>({
         });
       }
     },
-    onError(error: Error, variables: TProps, context: unknown) {
-      mutateOptions?.onError?.(error, variables, context);
+    onError: (...args: ErrorParams) => {
+      const [error] = args;
+      (mutateOptions?.onError as ErrorFn | undefined)?.(...args);
       if (error?.message) {
         const notificationProps =
           typeof notification?.error === "function"
