@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "license": "MIT",
   "scripts": {
-    "build": "rollup -c rollup.config.js",
+    "build": "rollup -c rollup.config.js && rollup -c rollup.dts.config.js",
     "prepublishOnly": "yarn build"
   },
   "devDependencies": {
@@ -44,6 +44,12 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./lib": {
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/lib/index.mjs",
+      "require": "./dist/lib/index.js",
+      "default": "./dist/lib/index.js"
     }
   },
   "repository": {
