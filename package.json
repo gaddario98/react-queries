@@ -1,6 +1,6 @@
 {
   "name": "@gaddario98/react-queries",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -29,7 +29,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@gaddario98/react-state": "^2.0.0",
+    "@gaddario98/react-state": "^2.0.1",
     "axios": "^1.12.2",
     "jotai": "^2.16.0",
     "jotai-family": "^1.0.1"
