@@ -1,1 +1,1 @@
-export * from './lib';
+export * from "@gaddario98/react-queries";
