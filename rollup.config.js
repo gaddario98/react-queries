@@ -1,5 +1,5 @@
 import { createRequire } from "module";
-import { createMultiEntryConfig } from "../../rollup.common.config.js";
+import { createMultiEntryConfig } from "../../../rollup.common.config.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
