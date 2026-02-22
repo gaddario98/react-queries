@@ -1,18 +1,21 @@
-import { atom } from 'jotai'
-import { atomWithStorage, createJSONStorage, selectAtom } from 'jotai/utils'
-import { storage } from '@gaddario98/react-state'
-import type { UseMutationResult } from '@tanstack/react-query'
-import type { QueriesArray, QueryResult } from '../types'
+import { atom } from "jotai";
+import { atomWithStorage, createJSONStorage, selectAtom } from "jotai/utils";
+import { storage } from "@gaddario98/react-state";
+import type { UseMutationResult } from "@tanstack/react-query";
+import type { QueriesArray, QueryResult } from "../types";
+import { apiConfigAtom } from "../config";
+
+type SetStateAction<S> = S | ((prevState: S) => S);
 
 // ============================================================================
 // Type Definitions
 // ============================================================================
 
 export type QueryStoreEntry<Q extends QueriesArray = QueriesArray> =
-  QueryResult<Q[number]['response']>
+  QueryResult<Q[number]["response"]>;
 
 export type MutationStoreEntry<Q extends QueriesArray = QueriesArray> =
-  UseMutationResult<Q[number]['response'], Error, Q[number]['props'], unknown>
+  UseMutationResult<Q[number]["response"], Error, Q[number]["props"], unknown>;
 // ============================================================================
 // Default Values
 // ============================================================================
@@ -29,13 +32,13 @@ export const DEFAULT_QUERY_ENTRY: QueryStoreEntry = Object.freeze({
   error: null,
   dataUpdatedAt: 0,
   errorUpdatedAt: 0,
-  fetchStatus: 'idle' as const,
+  fetchStatus: "idle" as const,
   refetch: () => Promise.resolve(),
-})
+});
 
 export const DEFAULT_MUTATION_ENTRY: MutationStoreEntry = Object.freeze({
   data: undefined,
-  status: 'idle',
+  status: "idle",
   error: null,
   variables: undefined,
   submittedAt: 0,
@@ -50,34 +53,64 @@ export const DEFAULT_MUTATION_ENTRY: MutationStoreEntry = Object.freeze({
   failureCount: 0,
   failureReason: null,
   isPaused: false,
-} as MutationStoreEntry)
+} as MutationStoreEntry);
 
 // ============================================================================
 // Global Atoms (single atom for all queries, single atom for all mutations)
 // ============================================================================
 
 /**
+ * Global atom storing all query results with localStorage persistence.
+ * Used when `persistQueries` is `true` (default).
+ */
+export const queriesAtomWithStorage = atomWithStorage<
+  Record<string, QueryStoreEntry>
+>(
+  "queries-atom",
+  {},
+  createJSONStorage<Record<string, QueryStoreEntry>>(() => storage),
+  { getOnInit: true },
+);
+
+/**
+ * Global atom storing all query results in memory only (no persistence).
+ * Used when `persistQueries` is `false`.
+ */
+export const queriesAtomBase = atom<Record<string, QueryStoreEntry>>({});
+
+/**
  * Global atom storing all query results.
+ * Delegates to `queriesAtomWithStorage` or `queriesAtomBase` based on
+ * the `persistQueries` flag in `ApiConfig` (defaults to `true`).
  * Key format: "scopeId:queryKey"
  */
-export const queriesAtom = atomWithStorage<Record<string, QueryStoreEntry>>(
-  'queries-atom',
-  {},
-  createJSONStorage<Record<string, QueryStoreEntry>>(() => storage),{ getOnInit: true }
-)
+export const queriesAtom = atom(
+  (get) => {
+    const { persistQueries = true } = get(apiConfigAtom);
+    return persistQueries ? get(queriesAtomWithStorage) : get(queriesAtomBase);
+  },
+  (get, set, update: SetStateAction<Record<string, QueryStoreEntry>>) => {
+    const { persistQueries = true } = get(apiConfigAtom);
+    if (persistQueries) {
+      set(queriesAtomWithStorage, update);
+    } else {
+      set(queriesAtomBase, update);
+    }
+  },
+);
 
 /**
  * Global atom storing all mutation results.
  * Key format: "scopeId:mutationKey"
  */
-export const mutationsAtom = atom<Record<string, MutationStoreEntry>>({})
+export const mutationsAtom = atom<Record<string, MutationStoreEntry>>({});
 
 // ============================================================================
 // Helper to generate composite keys
 // ============================================================================
 
 export const getCompositeKey = (scopeId: string, key: string): string =>
-  `${scopeId}:${key}`
+  `${scopeId}:${key}`;
 
 // ============================================================================
 // Derived Atoms for specific scope access
@@ -89,38 +122,38 @@ export const getCompositeKey = (scopeId: string, key: string): string =>
 export const createScopeQueriesAtom = (scopeId: string) =>
   atom(
     (get) => {
-      const allQueries = get(queriesAtom)
-      const prefix = `${scopeId}:`
-      const scopeQueries: Record<string, QueryStoreEntry> = {}
+      const allQueries = get(queriesAtom);
+      const prefix = `${scopeId}:`;
+      const scopeQueries: Record<string, QueryStoreEntry> = {};
 
       for (const [key, value] of Object.entries(allQueries)) {
         if (key.startsWith(prefix)) {
-          scopeQueries[key.slice(prefix.length)] = value
+          scopeQueries[key.slice(prefix.length)] = value;
         }
       }
 
-      return scopeQueries
+      return scopeQueries;
     },
     (get, set, update: Record<string, QueryStoreEntry>) => {
-      const allQueries = get(queriesAtom)
-      const prefix = `${scopeId}:`
-      const newQueries = { ...allQueries }
+      const allQueries = get(queriesAtom);
+      const prefix = `${scopeId}:`;
+      const newQueries = { ...allQueries };
 
       // Remove old scope entries
       for (const key of Object.keys(newQueries)) {
         if (key.startsWith(prefix)) {
-          delete newQueries[key]
+          delete newQueries[key];
         }
       }
 
       // Add new scope entries
       for (const [key, value] of Object.entries(update)) {
-        newQueries[`${prefix}${key}`] = value
+        newQueries[`${prefix}${key}`] = value;
       }
 
-      set(queriesAtom, newQueries)
+      set(queriesAtom, newQueries);
     },
-  )
+  );
 
 /**
  * Creates a derived atom for accessing mutations of a specific scope.
@@ -128,38 +161,38 @@ export const createScopeQueriesAtom = (scopeId: string) =>
 export const createScopeMutationsAtom = (scopeId: string) =>
   atom(
     (get) => {
-      const allMutations = get(mutationsAtom)
-      const prefix = `${scopeId}:`
-      const scopeMutations: Record<string, MutationStoreEntry> = {}
+      const allMutations = get(mutationsAtom);
+      const prefix = `${scopeId}:`;
+      const scopeMutations: Record<string, MutationStoreEntry> = {};
 
       for (const [key, value] of Object.entries(allMutations)) {
         if (key.startsWith(prefix)) {
-          scopeMutations[key.slice(prefix.length)] = value
+          scopeMutations[key.slice(prefix.length)] = value;
         }
       }
 
-      return scopeMutations
+      return scopeMutations;
     },
     (get, set, update: Record<string, MutationStoreEntry>) => {
-      const allMutations = get(mutationsAtom)
-      const prefix = `${scopeId}:`
-      const newMutations = { ...allMutations }
+      const allMutations = get(mutationsAtom);
+      const prefix = `${scopeId}:`;
+      const newMutations = { ...allMutations };
 
       // Remove old scope entries
       for (const key of Object.keys(newMutations)) {
         if (key.startsWith(prefix)) {
-          delete newMutations[key]
+          delete newMutations[key];
         }
       }
 
       // Add new scope entries
       for (const [key, value] of Object.entries(update)) {
-        newMutations[`${prefix}${key}`] = value
+        newMutations[`${prefix}${key}`] = value;
       }
 
-      set(mutationsAtom, newMutations)
+      set(mutationsAtom, newMutations);
     },
-  )
+  );
 
 // ============================================================================
 // Selectors for single query/mutation access
@@ -169,13 +202,13 @@ export const createQuerySelector = <Q extends QueriesArray>(
   scopeId: string,
   queryKey: string,
 ) => {
-  const compositeKey = getCompositeKey(scopeId, queryKey)
+  const compositeKey = getCompositeKey(scopeId, queryKey);
   return selectAtom<Record<string, QueryStoreEntry<Q>>, QueryStoreEntry<Q>>(
     queriesAtom,
     (queries) => {
-      const entry = queries[compositeKey]
+      const entry = queries[compositeKey];
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      return entry ?? DEFAULT_QUERY_ENTRY
+      return entry ?? DEFAULT_QUERY_ENTRY;
     },
     (a, b) =>
       a === b ||
@@ -183,26 +216,26 @@ export const createQuerySelector = <Q extends QueriesArray>(
         a.isLoading === b.isLoading &&
         a.isFetching === b.isFetching &&
         a.error === b.error),
-  )
-}
+  );
+};
 
 export const createMutationSelector = <Q extends QueriesArray>(
   scopeId: string,
   mutationKey: string,
 ) => {
-  const compositeKey = getCompositeKey(scopeId, mutationKey)
+  const compositeKey = getCompositeKey(scopeId, mutationKey);
   return selectAtom<
     Record<string, MutationStoreEntry<Q>>,
     MutationStoreEntry<Q>
   >(
     mutationsAtom,
     (mutations) => {
-      const entry = mutations[compositeKey]
+      const entry = mutations[compositeKey];
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      return entry ?? DEFAULT_MUTATION_ENTRY
+      return entry ?? DEFAULT_MUTATION_ENTRY;
     },
     (a, b) =>
       a === b ||
       (a.data === b.data && a.isPending === b.isPending && a.error === b.error),
-  )
-}
+  );
+};

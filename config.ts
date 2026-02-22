@@ -45,6 +45,12 @@ export interface ApiConfig {
   }
   encryption?: EncryptionConfig
   showNotification?: (notification: ApiNotificationMessage) => void
+  /**
+   * Whether to persist query results to storage (e.g. localStorage).
+   * Defaults to `true` for backward compatibility.
+   * Set to `false` to use an in-memory atom without any storage persistence.
+   */
+  persistQueries?: boolean
 }
 const _endpoints: Endpoint = {
   custom: '',
