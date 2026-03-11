@@ -1,90 +1,86 @@
-import { useQueries } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
-import { useApiConfigValue } from '../config'
-import type { MultipleQueryResponse, QueriesArray, QueryProps } from '../types'
-import type { UseQueryResult } from '@tanstack/react-query'
+import { useQueries } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useApiConfigValue } from "../config";
+import type { MultipleQueryResponse, QueriesArray, QueryProps } from "../types";
+import type { UseQueryResult } from "@tanstack/react-query";
 
 export const useMultipleQuery = <Q extends QueriesArray>(
-  settings: Array<QueryProps<Q[number]['key'], Q[number]['response']>> = [],
+  settings: Array<QueryProps<Q[number]["key"], Q[number]["response"]>> = [],
 ) => {
   const { requestFn, validateAuthFn, defaultHeaders, queryClient, endpoints } =
-    useApiConfigValue()
+    useApiConfigValue();
 
   const generateEndpoint = useCallback(
     (endpoint: [string, string] | [string]) => {
-      const [key, path] = endpoint
-      const baseUrl = endpoints[key]
-      return [baseUrl, path].filter(Boolean).join('/')
+      const [key, path] = endpoint;
+      const baseUrl = endpoints[key];
+      return [baseUrl, path].filter(Boolean).join("/");
     },
     [endpoints],
-  )
+  );
   const isLogged = useMemo(
     () => (validateAuthFn ? validateAuthFn() : true),
     [validateAuthFn],
-  )
+  );
 
   const generateQueryFn = useCallback(
     async ({
       endpoint,
       customQueryFn,
       headers,
-    }: QueryProps<Q[number]['key'], Q[number]['response']>) => {
-      const fullEndpoint = generateEndpoint(endpoint)
+    }: QueryProps<Q[number]["key"], Q[number]["response"]>) => {
+      const fullEndpoint = generateEndpoint(endpoint);
 
       if (customQueryFn) {
-        const res = await customQueryFn()
-        return res
+        const res = await customQueryFn();
+        return res;
       }
 
       const mergedHeaders = {
         ...defaultHeaders,
         ...headers,
-      }
+      };
 
       return await requestFn({
         url: fullEndpoint,
-        method: 'GET',
+        method: "GET",
         headers: mergedHeaders,
-      })
+      });
     },
     [defaultHeaders, generateEndpoint, requestFn],
-  )
+  );
 
   const ref = useRef({
-    settings,
-    data: {} as Record<Q[number]['key'], Q[number]['response']>,
+    data: {} as Record<Q[number]["key"], Q[number]["response"]>,
     results: {} as Record<
       string,
       MultipleQueryResponse<Q>[keyof MultipleQueryResponse<Q>]
     >,
-  })
-
-  useEffect(() => {
-    ref.current.settings = settings
-  }, [settings])
+  });
 
   const queries = useMemo(() => {
     return settings.map((setting) => {
-      const { queryKey, enabled = true, disableAuthControl, ...rest } = setting
+      const { queryKey, enabled = true, disableAuthControl, ...rest } = setting;
 
       return {
         queryKey,
         queryFn: () => generateQueryFn(setting),
         enabled: !!enabled && (disableAuthControl || !!isLogged),
         ...rest,
-      }
-    })
-  }, [settings, isLogged, generateQueryFn])
+      };
+    });
+  }, [settings, isLogged, generateQueryFn]);
 
   const combine = useCallback(
-    (results: Array<UseQueryResult<Q[number]['response'], Error>>) => {
+    (results: Array<UseQueryResult<Q[number]["response"], Error>>) => {
       return results.reduce<MultipleQueryResponse<Q>>((prev, result, index) => {
-        const setting = ref.current.settings[index]
+        const setting = settings[index];
+        if (!setting) return prev;
 
-        const keyToMap = setting.keyToMap
+        const keyToMap = setting.keyToMap;
         Object.assign(prev, {
           [keyToMap]: {
-            data: result.data as Q[number]['response'],
+            data: result.data as Q[number]["response"],
             isLoadingMapped: !setting.disableLoading && result.isLoading,
             isLoading: result.isLoading,
             isFetching: result.isFetching,
@@ -92,13 +88,13 @@ export const useMultipleQuery = <Q extends QueriesArray>(
             error: result.error,
             refetch: result.refetch,
           },
-        })
+        });
 
-        return prev
-      }, {} as MultipleQueryResponse<Q>)
+        return prev;
+      }, {} as MultipleQueryResponse<Q>);
     },
-    [],
-  )
+    [settings],
+  );
 
   const result = useQueries(
     {
@@ -106,15 +102,16 @@ export const useMultipleQuery = <Q extends QueriesArray>(
       combine,
     },
     queryClient,
-  )
+  );
 
   useEffect(() => {
-    ref.current.settings.forEach((setting) => {
-      const { keyToMap, onDataChanged, onStateChange } = setting
-      if (!onDataChanged && !onStateChange) return
+    settings.forEach((setting) => {
+      const { keyToMap, onDataChanged, onStateChange } = setting;
+      if (!onDataChanged && !onStateChange) return;
 
-      const currentResult = result[keyToMap]
-      const prevResult = ref.current.results[keyToMap]
+      const currentResult = result[keyToMap];
+      if (!currentResult) return;
+      const prevResult = ref.current.results[keyToMap];
 
       // Handle onStateChange
       if (onStateChange) {
@@ -128,23 +125,23 @@ export const useMultipleQuery = <Q extends QueriesArray>(
           prevResult.isPending !== currentResult.isPending ||
           prevResult.error !== currentResult.error
         ) {
-          ref.current.results[keyToMap] = currentResult
-          onStateChange(currentResult)
+          ref.current.results[keyToMap] = currentResult;
+          onStateChange(currentResult);
         }
       }
 
       // Handle onDataChanged (Legacy support + specific data changes)
       if (onDataChanged) {
-        const currentData = currentResult.data
-        const prevData = ref.current.data[keyToMap]
+        const currentData = currentResult.data;
+        const prevData = ref.current.data[keyToMap];
 
         if (currentData !== undefined && currentData !== prevData) {
-          ref.current.data[keyToMap] = currentData
-          onDataChanged(currentData)
+          ref.current.data[keyToMap] = currentData;
+          onDataChanged(currentData);
         }
       }
-    })
-  }, [result])
+    });
+  }, [result, settings]);
 
-  return result
-}
+  return result;
+};
