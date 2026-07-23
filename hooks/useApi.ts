@@ -8,6 +8,7 @@ import {
 import { useMultipleMutation } from "./useMultipleMutation";
 import { useMultipleQuery } from "./useMultipleQuery";
 import { useMultipleWebSocket } from "./useMultipleWebSocket";
+import { useApiConfigValue } from "../config";
 import type {
   MutationStoreEntry,
   QueryStoreEntry,
@@ -74,6 +75,7 @@ export function useApi<Q extends QueriesArray>(
   // Global atom setters
   const setQueriesAtom = useSetAtom(queriesAtom);
   const setMutationsAtom = useSetAtom(mutationsAtom);
+  const { queryClient } = useApiConfigValue();
 
   // Update a single query in the global atom
   const updateQueryAtom = useCallback(
@@ -182,19 +184,39 @@ export function useApi<Q extends QueriesArray>(
   const allMutation = useMultipleMutation<Q>(enhancedMutationItems);
   const allWebSocket = useMultipleWebSocket<Q[number]["key"]>(webSocketItems);
 
-  const queryKeys = enhancedQueryConfigs.map((el) => el.keyToMap);
+  const queryEntries = enhancedQueryConfigs.map((el) => ({
+    keyToMap: el.keyToMap,
+    queryKey: el.queryKey,
+  }));
   const mutationKeys = enhancedMutationItems.map((el) => el.key);
 
-  const ref = useRef({ allQuery, allMutation, queryKeys, mutationKeys });
+  const ref = useRef({
+    allQuery,
+    allMutation,
+    queryEntries,
+    mutationKeys,
+  });
   useEffect(() => {
-    ref.current = { allQuery, allMutation, queryKeys, mutationKeys };
-  }, [allQuery, allMutation, queryKeys, mutationKeys]);
+    ref.current = {
+      allQuery,
+      allMutation,
+      queryEntries,
+      mutationKeys,
+    };
+  }, [allQuery, allMutation, queryEntries, mutationKeys]);
 
   const refreshQueries = useCallback(() => {
-    ref.current.queryKeys.forEach((k) => {
-      ref.current.allQuery[k]?.refetch();
+    ref.current.queryEntries.forEach(({ keyToMap, queryKey }) => {
+      const query = ref.current.allQuery[keyToMap];
+
+      if (typeof query?.refetch === "function") {
+        void query.refetch();
+        return;
+      }
+
+      void queryClient.invalidateQueries({ queryKey, exact: false });
     });
-  }, []);
+  }, [queryClient]);
 
   return {
     allQuery,

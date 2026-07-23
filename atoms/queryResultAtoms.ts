@@ -207,7 +207,7 @@ export const createQuerySelector = <Q extends QueriesArray>(
     queriesAtom,
     (queries) => {
       const entry = queries[compositeKey];
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
       return entry ?? DEFAULT_QUERY_ENTRY;
     },
     (a, b) =>
@@ -231,7 +231,7 @@ export const createMutationSelector = <Q extends QueriesArray>(
     mutationsAtom,
     (mutations) => {
       const entry = mutations[compositeKey];
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
       return entry ?? DEFAULT_MUTATION_ENTRY;
     },
     (a, b) =>

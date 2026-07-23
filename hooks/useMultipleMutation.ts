@@ -363,11 +363,31 @@ export const useMultipleMutation = <Q extends QueriesArray>(
         context: undefined,
         isPaused: false,
       } as AllMutation<Q>[keyof AllMutation<Q>];
-      item.mutationConfig.onStateChange?.(result[mutationKey]);
     });
 
     return result;
   }, [getState, configs]);
+
+  const mutationResultRef = useRef<Record<string, any>>({});
+
+  useEffect(() => {
+    configs.forEach((item) => {
+      const mutationKey = item.key as string;
+      const currentResult = allMutation[mutationKey as keyof AllMutation<Q>];
+      const prevResult = mutationResultRef.current[mutationKey];
+
+      if (
+        !prevResult ||
+        prevResult.data !== currentResult.data ||
+        prevResult.error !== currentResult.error ||
+        prevResult.status !== currentResult.status ||
+        prevResult.variables !== currentResult.variables
+      ) {
+        mutationResultRef.current[mutationKey] = currentResult;
+        item.mutationConfig.onStateChange?.(currentResult);
+      }
+    });
+  }, [allMutation, configs]);
 
   return allMutation;
 };
