@@ -91,7 +91,6 @@ export const useMultipleMutation = <Q extends QueriesArray>(
   // Accessor for current state
   const getState = useCallback(
     (key: string) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       return reducerStates[key] || defaultState;
     },
     [reducerStates],
@@ -175,7 +174,12 @@ export const useMultipleMutation = <Q extends QueriesArray>(
         if (isTest) {
           result = "test" as unknown as TResponse;
         } else if (customRequest) {
-          result = await customRequest(fullEndpoint, method, data);
+          result = await customRequest(
+            fullEndpoint,
+            method,
+            data,
+            mergedHeaders,
+          );
         } else {
           result = await requestFn({
             url: fullEndpoint,
