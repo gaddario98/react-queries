@@ -97,8 +97,8 @@ useEffect(() => {
     // 9. Optional: Global notification handler interface
     showNotification: ({ message, type }) => toast(message, { type }),
 
-    // 10. Persist internal Jotai atoms holding query states (default: true)
-    persistQueries: true,
+    // 10. Persist internal Jotai atoms holding query states (default: false)
+    persistQueries: false,
   });
 }, []);
 ```
