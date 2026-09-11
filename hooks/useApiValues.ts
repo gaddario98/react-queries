@@ -5,7 +5,7 @@ import {
   DEFAULT_QUERY_ENTRY,
   useJotaiMutations,
   useJotaiQueries,
-} from ".";
+} from "./useJotaiQueryResult";
 import type { GetApiValuesFunction, QueriesArray } from "../types";
 
 const getValueAtPath = (

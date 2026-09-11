@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { useApiConfigValue } from "../config";
-import { DEFAULT_MUTATION_ENTRY } from ".";
+import { DEFAULT_MUTATION_ENTRY } from "../atoms";
 import type {
   AllMutation,
   MutationActionInternal,
