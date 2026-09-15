@@ -4,3 +4,4 @@ export * from "./hooks";
 export * from "./context";
 export * from "./utils";
 export type * from "./types";
+export * from '@tanstack/react-query'

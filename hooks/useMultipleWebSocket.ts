@@ -40,7 +40,6 @@ export const useMultipleWebSocket = <K extends string>(
 
       ws.onopen = () => {
         setStatuses((prev) => new Map(prev).set(config.key, 'open'))
-        console.log(`WebSocket [${config.key}] connected`)
       }
 
       ws.onmessage = (event) => {
@@ -70,7 +69,6 @@ export const useMultipleWebSocket = <K extends string>(
 
       ws.onclose = () => {
         setStatuses((prev) => new Map(prev).set(config.key, 'closed'))
-        console.log(`WebSocket [${config.key}] disconnected`)
         sockets.delete(config.key)
       }
     })

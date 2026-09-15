@@ -22,14 +22,12 @@ export const useWebSocket = (
   useEffect(() => {
     if (!url || (!websocketConfig?.autoConnect && !endpoint)) return
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('connecting')
     const ws = new WebSocket(url)
     socketRef.current = ws
 
     ws.onopen = () => {
       setStatus('open')
-      console.log('WebSocket connected')
     }
 
     ws.onmessage = (event) => {
@@ -60,7 +58,6 @@ export const useWebSocket = (
 
     ws.onclose = () => {
       setStatus('closed')
-      console.log('WebSocket disconnected')
     }
 
     return () => {

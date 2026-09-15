@@ -67,7 +67,6 @@ export const useApiValues = <Q extends QueriesArray>({
       if (type === "query") {
         const newValue = getValueAtPath(allQuery, keyPath);
         const oldValue = getValueAtPath(currentQuery, keyPath);
-        // console.log(key, !equal(newValue, oldValue), newValue, oldValue)
         if (!equal(newValue, oldValue)) {
           internalTrigger = true;
         }
@@ -84,7 +83,7 @@ export const useApiValues = <Q extends QueriesArray>({
       query: allQuery,
       mutation: allMutation,
     };
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+
     if (internalTrigger) {
       setTrigger((v) => v + 1);
     }
@@ -101,8 +100,8 @@ export const useApiValues = <Q extends QueriesArray>({
       const defaultQueries =
         type === "query"
           ? DEFAULT_QUERY_ENTRY
-          : // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            type === "mutation"
+          :
+          type === "mutation"
             ? DEFAULT_MUTATION_ENTRY
             : undefined;
 
@@ -112,7 +111,7 @@ export const useApiValues = <Q extends QueriesArray>({
       subscriptions.current.set(keyMap, value);
       return subscriptions.current.get(keyMap);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [trigger],
   ) as GetApiValuesFunction<Q>;
 
