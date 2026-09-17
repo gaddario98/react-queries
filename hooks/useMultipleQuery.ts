@@ -60,12 +60,19 @@ export const useMultipleQuery = <Q extends QueriesArray>(
 
   const queries = useMemo(() => {
     return settings.map((setting) => {
-      const { queryKey, enabled = true, disableAuthControl, ...rest } = setting;
+      const {
+        queryKey,
+        enabled = true,
+        disableAuthControl,
+        options: queryOptions,
+        ...rest
+      } = setting;
 
       return {
         queryKey,
         queryFn: () => generateQueryFn(setting),
         enabled: !!enabled && (disableAuthControl || !!isLogged),
+        ...queryOptions,
         ...rest,
       };
     });
