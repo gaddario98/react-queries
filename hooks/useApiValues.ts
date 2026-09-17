@@ -115,5 +115,10 @@ export const useApiValues = <Q extends QueriesArray>({
     [trigger],
   ) as GetApiValuesFunction<Q>;
 
-  return { get };
+  const refreshAll = useCallback(() => {
+    Object.values(dataRef.current.query).forEach((el) => {
+      el.refetch()
+    })
+  }, [])
+  return { get, refreshAll };
 };
