@@ -46,7 +46,10 @@ export interface QueryProps<Key extends string, TResponse> {
   options?: Omit<
     Parameters<typeof useQuery<TResponse>>["0"],
     "queryKey" | "queryFn"
-  >;
+  > & {
+    onDataChanged?: (data: TResponse) => void;
+    onStateChange?: (state: QueryResult<TResponse>) => void;
+  };
 }
 export interface CustomQueryOptions<TResponse> extends Omit<
   UseQueryOptions<TResponse, Error>,
@@ -61,7 +64,10 @@ export interface CustomQueryOptions<TResponse> extends Omit<
   options?: Omit<
     Parameters<typeof useQuery<TResponse>>["0"],
     "queryKey" | "queryFn"
-  >;
+  > & {
+    onDataChanged?: (data: TResponse | undefined) => void;
+    onStateChange?: (state: QueryResult<TResponse>) => void;
+  };
   // Legacy support
   keyToMap?: string;
   disableLoading?: boolean;
@@ -162,6 +168,7 @@ export type ExtractQueryByKey<
   isPending: boolean;
   error: Error | null;
   refetch: () => Promise<unknown>;
+  dataUpdatedAt?: number;
 };
 
 export interface MutationConfig<
@@ -181,6 +188,7 @@ export interface QueryResult<TResponse> {
   isPending: boolean;
   error: Error | null;
   refetch: () => Promise<unknown>;
+  dataUpdatedAt?: number;
 }
 
 export type MultipleQueryResponse<Q extends QueriesArray> = {
@@ -192,6 +200,7 @@ export type MultipleQueryResponse<Q extends QueriesArray> = {
     isPending: boolean;
     error: Error | null;
     refetch: () => Promise<unknown>;
+    dataUpdatedAt?: number;
   };
 };
 

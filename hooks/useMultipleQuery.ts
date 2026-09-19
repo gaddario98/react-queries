@@ -1,4 +1,4 @@
-import { useQueries } from "@tanstack/react-query";
+import { useIsRestoring, useQueries } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useApiConfigValue } from "../config";
 import type { MultipleQueryResponse, QueriesArray, QueryProps } from "../types";
@@ -9,6 +9,7 @@ export const useMultipleQuery = <Q extends QueriesArray>(
 ) => {
   const { requestFn, validateAuthFn, defaultHeaders, queryClient, endpoints } =
     useApiConfigValue();
+  const isRestoring = useIsRestoring();
 
   const generateEndpoint = useCallback(
     (endpoint: [string, string] | [string]) => {
@@ -52,6 +53,8 @@ export const useMultipleQuery = <Q extends QueriesArray>(
 
   const ref = useRef({
     data: {} as Record<Q[number]["key"], Q[number]["response"]>,
+    dataUpdatedAt: {} as Record<string, number>,
+    queryKeys: {} as Record<string, string>,
     results: {} as Record<
       string,
       MultipleQueryResponse<Q>[keyof MultipleQueryResponse<Q>]
@@ -94,6 +97,7 @@ export const useMultipleQuery = <Q extends QueriesArray>(
             isPending: result.isPending,
             error: result.error,
             refetch: result.refetch,
+            dataUpdatedAt: result.dataUpdatedAt,
           },
         });
 
@@ -112,8 +116,15 @@ export const useMultipleQuery = <Q extends QueriesArray>(
   );
 
   useEffect(() => {
+    if (isRestoring) return;
+
     settings.forEach((setting) => {
-      const { keyToMap, onDataChanged, onStateChange } = setting;
+      const { keyToMap, queryKey } = setting;
+      const onDataChanged =
+        setting.onDataChanged ?? setting.options?.onDataChanged;
+      const onStateChange =
+        setting.onStateChange ?? setting.options?.onStateChange;
+
       if (!onDataChanged && !onStateChange) return;
 
       const currentResult = result[keyToMap];
@@ -123,7 +134,6 @@ export const useMultipleQuery = <Q extends QueriesArray>(
       // Handle onStateChange
       if (onStateChange) {
         if (
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           !prevResult ||
           prevResult.data !== currentResult.data ||
           prevResult.isLoading !== currentResult.isLoading ||
@@ -141,14 +151,30 @@ export const useMultipleQuery = <Q extends QueriesArray>(
       if (onDataChanged) {
         const currentData = currentResult.data;
         const prevData = ref.current.data[keyToMap];
+        const currentUpdatedAt = currentResult.dataUpdatedAt;
+        const prevUpdatedAt = ref.current.dataUpdatedAt[keyToMap];
+        const queryKeyStr = JSON.stringify(queryKey);
+        const prevKeyStr = ref.current.queryKeys[keyToMap];
 
-        if (currentData !== undefined && currentData !== prevData) {
+        const hasDataChanged =
+          currentData !== undefined &&
+          (currentData !== prevData ||
+            queryKeyStr !== prevKeyStr ||
+            (currentUpdatedAt !== undefined &&
+              currentUpdatedAt !== 0 &&
+              currentUpdatedAt !== prevUpdatedAt));
+
+        if (hasDataChanged) {
+          ref.current.queryKeys[keyToMap] = queryKeyStr;
           ref.current.data[keyToMap] = currentData;
+          if (currentUpdatedAt !== undefined) {
+            ref.current.dataUpdatedAt[keyToMap] = currentUpdatedAt;
+          }
           onDataChanged(currentData);
         }
       }
     });
-  }, [result, settings]);
+  }, [isRestoring, result, settings]);
 
   return result;
 };

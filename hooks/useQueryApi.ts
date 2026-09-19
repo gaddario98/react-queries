@@ -15,13 +15,16 @@ export const useQueryApi = <TResponse>(
     enabled = true,
     headers,
     disableAuthControl,
-    onDataChanged,
+    onDataChanged: rootOnDataChanged,
     customQueryFn,
     disableLoading,
+    options: queryOptions,
     ...restOptions
   } = options
 
-  const { requestFn, validateAuthFn, defaultHeaders,endpoints } =
+  const onDataChanged = rootOnDataChanged ?? queryOptions?.onDataChanged
+
+  const { requestFn, validateAuthFn, defaultHeaders, endpoints } =
     useApiConfigValue()
 
   const fullEndpoint = useMemo(() => {
@@ -65,17 +68,74 @@ export const useQueryApi = <TResponse>(
     enabled: enabledFinal,
     retry: 1,
     retryDelay: 1000,
+    ...queryOptions,
     ...restOptions,
   })
-  const ref = useRef({ onDataChanged, refetch: result.refetch })
+  const ref = useRef({
+    onDataChanged,
+    refetch: result.refetch,
+    data: undefined as TResponse | undefined,
+    dataUpdatedAt: 0,
+    queryKey: '',
+  })
+
+  // Synchronous first-render notification if data is already available (e.g. persisted or cached)
+  if (result.data !== undefined && onDataChanged) {
+    const queryKeyStr = JSON.stringify(queryKey)
+    const prevKeyStr = ref.current.queryKey
+    const isNewKey = queryKeyStr !== prevKeyStr
+    const currentData = result.data
+    const prevData = ref.current.data
+    const currentUpdatedAt = result.dataUpdatedAt
+    const prevUpdatedAt = ref.current.dataUpdatedAt
+
+    const hasChanged =
+      isNewKey ||
+      currentData !== prevData ||
+      (currentUpdatedAt !== undefined &&
+        currentUpdatedAt !== 0 &&
+        currentUpdatedAt !== prevUpdatedAt)
+
+    if (hasChanged) {
+      ref.current.queryKey = queryKeyStr
+      ref.current.data = currentData
+      if (result.dataUpdatedAt !== undefined) {
+        ref.current.dataUpdatedAt = result.dataUpdatedAt
+      }
+      onDataChanged(currentData)
+    }
+  }
 
   useEffect(() => {
-    ref.current = { onDataChanged, refetch: result.refetch }
+    ref.current.onDataChanged = onDataChanged
+    ref.current.refetch = result.refetch
   }, [onDataChanged, result.refetch])
 
   useEffect(() => {
-    ref.current.onDataChanged?.(result.data)
-  }, [result.data])
+    const currentData = result.data
+    const prevData = ref.current.data
+    const currentUpdatedAt = result.dataUpdatedAt
+    const prevUpdatedAt = ref.current.dataUpdatedAt
+    const queryKeyStr = JSON.stringify(queryKey)
+    const prevKeyStr = ref.current.queryKey
+
+    const hasDataChanged =
+      currentData !== undefined &&
+      (currentData !== prevData ||
+        queryKeyStr !== prevKeyStr ||
+        (currentUpdatedAt !== undefined &&
+          currentUpdatedAt !== 0 &&
+          currentUpdatedAt !== prevUpdatedAt))
+
+    if (hasDataChanged) {
+      ref.current.queryKey = queryKeyStr
+      ref.current.data = currentData
+      if (currentUpdatedAt !== undefined) {
+        ref.current.dataUpdatedAt = currentUpdatedAt
+      }
+      ref.current.onDataChanged?.(currentData)
+    }
+  }, [result.data, result.dataUpdatedAt, queryKey])
 
   // Sync to Jotai atom for persistence
   const setQueriesAtom = useSetAtom(queriesAtom)
@@ -127,5 +187,6 @@ export const useQueryApi = <TResponse>(
     isPending: result.isPending,
     error: result.error,
     refetch: () => ref.current.refetch(),
+    dataUpdatedAt: result.dataUpdatedAt,
   }
 }
