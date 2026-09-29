@@ -12,9 +12,12 @@ import type { AxiosRequestConfig } from "axios";
 export type ApiMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 export type Endpoint = Record<string, string>;
+export type QueryKeysToInvalidate<TProps, TResponse> =
+  | Array<string>
+  | ((variables: TProps, response: TResponse) => Array<string>);
 export interface QueriesProps<TProps, TResponse, TConverter = null> {
   endpoint: [keyof Endpoint, string] | [keyof Endpoint];
-  queryKeyToInvalidate?: Array<string>;
+  queryKeyToInvalidate?: QueryKeysToInvalidate<TProps, TResponse>;
   headers?: AxiosRequestConfig["headers"];
   method: ApiMethod;
   converter?: (props: TProps) => TConverter;
@@ -81,7 +84,7 @@ export interface CustomMutationOptions<
   endpoint: [keyof Endpoint, string] | [keyof Endpoint];
   method: ApiMethod;
   headers?: AxiosRequestConfig["headers"];
-  queryKeyToInvalidate?: Array<string>;
+  queryKeyToInvalidate?: QueryKeysToInvalidate<TProps, TResponse>;
   customRequest?: (
     url: string,
     method: string,

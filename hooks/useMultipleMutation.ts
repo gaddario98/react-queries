@@ -194,7 +194,11 @@ export const useMultipleMutation = <Q extends QueriesArray>(
 
         // Invalidate queries
         if (queryKeyToInvalidate) {
-          queryKeyToInvalidate.forEach((qKey) => {
+          const keysToInvalidate =
+            typeof queryKeyToInvalidate === "function"
+              ? queryKeyToInvalidate(data, result)
+              : queryKeyToInvalidate;
+          keysToInvalidate.forEach((qKey) => {
             queryClient.invalidateQueries({ queryKey: [qKey], exact: false });
           });
         }
@@ -385,7 +389,8 @@ export const useMultipleMutation = <Q extends QueriesArray>(
         prevResult.data !== currentResult.data ||
         prevResult.error !== currentResult.error ||
         prevResult.status !== currentResult.status ||
-        prevResult.variables !== currentResult.variables
+        prevResult.variables !== currentResult.variables ||
+        prevResult.mutateAsync !== currentResult.mutateAsync
       ) {
         mutationResultRef.current[mutationKey] = currentResult;
         item.mutationConfig.onStateChange?.(currentResult);

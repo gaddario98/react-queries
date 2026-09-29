@@ -103,7 +103,11 @@ export const useMutateApi = <TProps, TResponse>(
 
       // Invalidate queries
       if (queryKeyToInvalidate) {
-        queryKeyToInvalidate.forEach((qKey) => {
+        const keysToInvalidate =
+          typeof queryKeyToInvalidate === "function"
+            ? queryKeyToInvalidate(variables, data)
+            : queryKeyToInvalidate;
+        keysToInvalidate.forEach((qKey) => {
           queryClient.invalidateQueries({ queryKey: [qKey], exact: false });
         });
       }
